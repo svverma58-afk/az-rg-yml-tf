@@ -13,7 +13,7 @@ provider "azurerm" {
 }
 
 # Create a resource group
-resource "azurerm_resource_group" "shahi" {
-  name     = "shahi_rg"
+resource "azurerm_resource_group" "sunny" {
+  name     = "sunny_rg"
   location = "East US"
 }
