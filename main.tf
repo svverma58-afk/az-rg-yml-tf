@@ -2,7 +2,7 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "=5.0.0"
+      version = "=5.1.0"
     }
   }
 }
@@ -15,5 +15,5 @@ provider "azurerm" {
 # Create a resource group
 resource "azurerm_resource_group" "shahi" {
   name     = "shahi_rg"
-  location = "West US"
+  location = "East US"
 }
