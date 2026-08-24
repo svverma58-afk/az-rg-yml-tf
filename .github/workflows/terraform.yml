@@ -39,8 +39,9 @@ jobs:
         run: terraform validate
 
       - name: Terraform Plan
-        run: terraform plan -input=false
+        run: terraform plan -input=false -out=tfplan
 
+      # Apply only on main branch or manual trigger
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
-        run: terraform apply -auto-approve -input=false
+        run: terraform apply -auto-approve tfplan
