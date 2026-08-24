@@ -4,23 +4,30 @@ on:
   push:
     branches:
       - main
+
   pull_request:
     branches:
       - main
+
   workflow_dispatch:
 
 jobs:
   terraform:
-    runs-on: self-hosted   # or [self-hosted, windows] if you added labels
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+    name: Terraform Azure Deployment
+    runs-on: self-hosted
 
+    steps:
+      # 1. Checkout repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Install Terraform
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
+        uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.6.0
 
+      # 3. Login to Azure
       - name: Azure Login
         uses: azure/login@v2
         with:
@@ -32,16 +39,60 @@ jobs:
               "tenantId": "${{ secrets.ARM_TENANT_ID }}"
             }
 
+      # 4. Verify Azure account
+      - name: Verify Azure Account
+        run: |
+          echo "Azure account information:"
+          az account show \
+            --query "{Subscription:name, SubscriptionId:id, TenantId:tenantId}" \
+            --output table
+
+      # 5. Terraform Init
       - name: Terraform Init
         run: terraform init
 
+      # 6. Terraform Format Check
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive
+
+      # 7. Terraform Validate
       - name: Terraform Validate
         run: terraform validate
 
+      # 8. Terraform Plan
       - name: Terraform Plan
         run: terraform plan -input=false -out=tfplan
 
-      # Apply only on main branch or manual trigger
+      # 9. Terraform Apply
+      # Apply only when pushing to main or manually running workflow
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
-        run: terraform apply -auto-approve tfplan
+        run: terraform apply -input=false -auto-approve tfplan
+
+      # 10. Show Terraform state
+      - name: Terraform State
+        if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+        run: |
+          echo "Terraform resources in state:"
+          terraform state list
+
+      # 11. Verify Resource Group in Azure
+      - name: Verify Azure Resource Group
+        if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+        run: |
+          echo "Checking Azure Resource Group..."
+
+          az group show \
+            --name example-resources \
+            --query "{Name:name, Location:location, ProvisioningState:properties.provisioningState}" \
+            --output table
+
+      # 12. List all Resource Groups
+      - name: List Azure Resource Groups
+        if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+        run: |
+          echo "Resource groups in current Azure subscription:"
+
+          az group list \
+            --query "[].{Name:name, Location:location, State:properties.provisioningState}" \
+            --output table
